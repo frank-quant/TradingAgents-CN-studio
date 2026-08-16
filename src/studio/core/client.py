@@ -72,10 +72,12 @@ class TradingAgentsClient:
         quick_model: Optional[str] = None,
         deep_model: Optional[str] = None,
         market: str = "A股",
+        analysis_date: Optional[str] = None,
     ) -> str:
         params: dict[str, Any] = {
             "market_type": market,
             "research_depth": depth,
+            **({"analysis_date": analysis_date} if analysis_date else {}),
             "selected_analysts": analysts or ["market", "fundamentals", "news"],
             "include_sentiment": True,
             "include_risk": True,
@@ -85,7 +87,8 @@ class TradingAgentsClient:
             params["quick_analysis_model"] = quick_model
         if deep_model:
             params["deep_analysis_model"] = deep_model
-        body = self._request("POST", "/api/analysis/single", json={"symbol": symbol, "parameters": params})
+        body = self._request("POST", "/api/analysis/single",
+                             json={"symbol": symbol, "stock_code": symbol, "parameters": params})
         task_id = body.get("data", {}).get("task_id")
         if not task_id:
             raise APIError(f"未返回 task_id: {body}")

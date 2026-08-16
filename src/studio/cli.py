@@ -226,6 +226,7 @@ def compare_run(
     depth: Optional[str] = typer.Option(None, "--depth", "-d", help="研究深度（默认取配置）"),
     concurrency: int = typer.Option(0, "--concurrency", "-j", help="并发数（默认取配置）"),
     dry_run: bool = typer.Option(False, "--dry-run", help="只打印计划，不真实调用"),
+    date: Optional[str] = typer.Option(None, "--date", help="分析日期 YYYY-MM-DD（默认今天；周末建议指定上一交易日）"),
     out_dir: Optional[Path] = typer.Option(None, "--out-dir", help="结果输出目录（默认 data/exports）"),
     config: Optional[str] = CONFIG_OPTION,
 ):
@@ -247,7 +248,7 @@ def compare_run(
         return
 
     bench_start = datetime.now(timezone.utc)
-    runs = run_compare(cfg, symbol, model_list, depth, analysts, concurrency, poll)
+    runs = run_compare(cfg, symbol, model_list, depth, analysts, concurrency, poll, analysis_date=date)
     client = _client(cfg)
     try:
         rows = M.build_rows(cfg, client, runs, bench_start)

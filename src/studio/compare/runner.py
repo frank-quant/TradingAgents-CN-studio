@@ -25,13 +25,15 @@ class ModelRun:
     started_at: str = ""
 
 
-def run_one(cfg, model: str, symbol: str, depth: str, analysts: list[str], poll: float) -> ModelRun:
+def run_one(cfg, model: str, symbol: str, depth: str, analysts: list[str], poll: float,
+             analysis_date: str | None = None) -> ModelRun:
     """单模型一次完整分析（每个线程独立客户端，避免共享连接）。"""
     run = ModelRun(model=model)
     client = TradingAgentsClient(cfg)
     try:
         run.task_id = client.submit_analysis(
-            symbol, depth=depth, analysts=analysts, quick_model=model, deep_model=model
+            symbol, depth=depth, analysts=analysts, quick_model=model, deep_model=model,
+            analysis_date=analysis_date,
         )
         run.started_at = time.strftime("%Y-%m-%dT%H:%M:%S")
         t0 = time.time()
@@ -61,6 +63,7 @@ def run_compare(
     analysts: list[str],
     concurrency: int = 2,
     poll: float = 10.0,
+    analysis_date: str | None = None,
 ) -> list[ModelRun]:
     console.print(
         f"[bold]compare: {symbol} / {depth} / {len(models)} 个模型（并发 {concurrency}）[/bold]"
@@ -68,7 +71,8 @@ def run_compare(
     runs: list[ModelRun] = []
     with ThreadPoolExecutor(max_workers=max(1, concurrency)) as pool:
         futures = {
-            pool.submit(run_one, cfg, m, symbol, depth, analysts, poll): m for m in models
+            pool.submit(run_one, cfg, m, symbol, depth, analysts, poll, analysis_date): m
+            for m in models
         }
         for fut in as_completed(futures):
             run = fut.result()
