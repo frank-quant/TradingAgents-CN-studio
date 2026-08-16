@@ -12,7 +12,7 @@ WORKDIR /app
 COPY pyproject.toml README.md LICENSE ./
 COPY src ./src
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN pip install --no-cache-dir . && chmod +x /entrypoint.sh
+RUN pip install --no-cache-dir . && sed -i "s/$//" /entrypoint.sh && chmod +x /entrypoint.sh
 
 # 数据落点：/data/studio（SQLite + 导出物），原项目数据卷只读挂在 /data/ta
 VOLUME ["/data/studio"]
