@@ -36,9 +36,10 @@ Studio 就是补这四块拼图的：**四个独立模块 + 一个统一命令�
 【动作】存量约15%仓位持有；收盘破87.80无条件清仓，反弹至90.5-92无量可减仓四分之一
 ```
 
-### notify — 推送与定时
+### notify — 多渠道推送与定时
 
-- **飞书自定义机器人**（webhook + 可选签名）与**通用 JSON webhook** 两种渠道，注册式扩展
+- 支持渠道：**飞书** / **钉钉** / **企业微信** / **Telegram** / **通用 JSON webhook**，可同时配多个、全部生效
+- 同一渠道可推多个群（`feishu#盯盘群` / `feishu#决策群`），注册式扩展新渠道
 - 卡片带股票名称与多空判断，底部按钮直达**完整报告页**（左侧子报告导航 + 右侧内容，手机为抽屉式目录）与**辩论回放页**
 - `cron` 调度器常驻：工作日 09:30 自动 `分析 → 提炼 → 推送`，全程无人值守
 
@@ -133,7 +134,42 @@ studio report serve --port 8890                # 报告详情服务（卡片按�
 studio cron                                    # 常驻调度（容器里跑的就是它）
 ```
 
-定时推送示例（`studio.yaml`）：
+### 推送渠道配置
+
+在 `studio.yaml` 的 `notify.channels` 下按需添加，**同时配多个全部生效**；键名支持 `渠道类型#别名` 让同一渠道推多个群：
+
+| 渠道 | 配置项 | 在哪获取 |
+|---|---|---|
+| `feishu` | `webhook`（必填）、`secret`（开了签名校验才填） | 飞书群 → 设置 → 群机器人 → 添加**自定义机器人** |
+| `dingtalk` | `webhook`（必填）、`secret`（安全设置选"加签"时必填） | 钉钉群 → 设置 → 智能群助手 → 添加**自定义**机器人 |
+| `wecom` | `webhook`（必填） | 企业微信群 → 右键 → 添加**群机器人** |
+| `telegram` | `token`、`chat_id`（必填）、`proxy`（国内网络需要） | `@BotFather` 创建 bot；拉入群后取 chat_id |
+| `webhook` | `url`（必填） | 任意接收 `POST {title, body, markdown, buttons}` 的服务 |
+
+```yaml
+notify:
+  channels:
+    feishu:                 # 飞书主群
+      webhook: https://open.feishu.cn/open-apis/bot/v2/hook/xxx
+      secret: ""
+    feishu#决策群:           # 同一渠道的第二个群（#后是别名）
+      webhook: https://open.feishu.cn/open-apis/bot/v2/hook/yyy
+    dingtalk:               # 钉钉群
+      webhook: https://oapi.dingtalk.com/robot/send?access_token=zzz
+      secret: SECxxx
+```
+
+配置后用一条命令验证（向所有渠道发测试消息，逐个报告成功/失败）：
+
+```bash
+studio notify test
+```
+
+> Telegram 在国内网络下需配置 `proxy`（如 `http://127.0.0.1:7897`）；飞书/钉钉/企微均使用群机器人 webhook，不需要创建企业应用。
+
+### 定时推送
+
+`studio.yaml` 的 `cron.jobs` 声明任务，调度器常驻后按 cron 表达式触发完整管道：
 
 ```yaml
 cron:

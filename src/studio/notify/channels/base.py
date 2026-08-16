@@ -6,6 +6,7 @@ import abc
 
 class Channel(abc.ABC):
     name: str = "base"
+    alias: str = ""   # 多实例时的展示名（如 feishu#盯盘群 -> 盯盘群）
 
     @abc.abstractmethod
     def send(self, title: str, body: str, markdown: str = "",
@@ -28,10 +29,12 @@ class ChannelRegistry:
         self._factories[cls.name] = cls
         return cls
 
-    def build(self, name: str, options: dict) -> Channel:
+    def build(self, name: str, options: dict, alias: str = "") -> Channel:
         if name not in self._factories:
             raise KeyError(f"未知推送渠道: {name}（可用: {list(self._factories)}）")
-        return self._factories[name](options)
+        ch = self._factories[name](options)
+        ch.alias = alias or name
+        return ch
 
 
 registry = ChannelRegistry()

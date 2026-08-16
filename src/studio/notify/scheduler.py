@@ -21,10 +21,12 @@ console = Console()
 
 
 def build_channels(cfg: Config):
+    """构建推送渠道。键支持 "type#别名" 形式，同类型可配多个实例（如两个飞书群）。"""
     channels = []
     for name, options in (cfg.get("notify.channels", {}) or {}).items():
+        ctype, _, alias = name.partition("#")
         try:
-            channels.append(registry.build(name, options or {}))
+            channels.append(registry.build(ctype, options or {}, alias=alias))
         except Exception as e:
             console.print(f"[yellow]⚠ 跳过渠道 {name}: {e}[/yellow]")
     return channels
@@ -36,9 +38,9 @@ def push_all(channels, title: str, body: str, markdown: str = "",
     for ch in channels:
         try:
             ch.send(title, body, markdown, buttons=buttons)
-            results.append(f"✓ {ch.name}")
+            results.append(f"✓ {ch.alias or ch.name}")
         except Exception as e:
-            results.append(f"✗ {ch.name}: {e}")
+            results.append(f"✗ {ch.alias or ch.name}: {e}")
     return results
 
 

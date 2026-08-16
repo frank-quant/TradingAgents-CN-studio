@@ -1,50 +1,81 @@
+# ============================================================
+# TradingAgents Studio 集中配置
+# 复制为 studio.yaml 后修改；密钥建议用 ${ENV_VAR} 引用环境变量
+# 优先级：环境变量 STUDIO__SECTION__KEY > studio.yaml > 默认值
+# ============================================================
+
 api:
-  base_url: http://localhost
+  base_url: http://localhost          # TradingAgents-CN 的 nginx 入口
   username: admin
-  password: ${STUDIO_API_PASSWORD}
+  password: ${STUDIO_API_PASSWORD}    # 例如 export STUDIO_API_PASSWORD=xxx
   timeout: 30
+
+# digest 模块用来做提炼的大模型（OpenAI 兼容接口）
 llm:
   base_url: https://open.bigmodel.cn/api/paas/v4
   api_key: ${ZHIPU_API_KEY}
   model: glm-5.3
   max_tokens: 4096
   temperature: 0.3
+  # 供应商特有参数直通（如智谱推理档位；非智谱可删掉这段）
   extra_body:
     reasoning_effort: low
+
+# 数据卷路径：replay/digest 的文件数据源
+# 本机直跑填宿主机路径；容器内由 compose 挂成 /data/ta
 data:
   ta_dir: /path/to/TradingAgents-CN/data
+
+# ============ 推送渠道（可同时配多个，全部生效） ============
+# 键名支持 "渠道类型#别名"：同一渠道配多个群，如 feishu#盯盘群 / feishu#决策群
 notify:
+  report_url_prefix: http://localhost:8890   # 卡片按钮落点；手机访问改成本机局域网 IP
   channels:
+    # ---- 飞书自定义机器人：群设置 -> 群机器人 -> 添加自定义机器人 ----
     feishu:
-      webhook: ${FEISHU_WEBHOOK}
-      secret: ''
-  report_url_prefix: http://localhost:8890
+      webhook: ${FEISHU_WEBHOOK}      # https://open.feishu.cn/open-apis/bot/v2/hook/xxx
+      secret: ""                      # 开了"签名校验"才填，否则留空
+    # 同一个飞书再推一个群（别名仅用于日志展示）：
+    # feishu#决策群:
+    #   webhook: https://open.feishu.cn/open-apis/bot/v2/hook/yyy
+
+    # ---- 钉钉自定义机器人：群设置 -> 智能群助手 -> 添加机器人 -> 自定义 ----
+    # dingtalk:
+    #   webhook: https://oapi.dingtalk.com/robot/send?access_token=xxx
+    #   secret: SECxxx                 # 安全设置选"加签"时必填
+
+    # ---- 企业微信群机器人：群右键 -> 添加群机器人 ----
+    # wecom:
+    #   webhook: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx
+
+    # ---- Telegram Bot（国内网络需代理）：@BotFather 建 bot，拉入群后取 chat_id ----
+    # telegram:
+    #   token: "123456:ABC-xxx"
+    #   chat_id: "-1001234567890"
+    #   proxy: http://127.0.0.1:7897   # 可选
+
+    # ---- 通用 JSON webhook：POST {title, body, markdown, buttons}，可对接任意中转 ----
+    # webhook:
+    #   url: http://127.0.0.1:9000/hook
+
 compare:
   defaults:
-    depth: 标准
-    analysts:
-    - market
-    - fundamentals
-    - news
-    concurrency: 2
+    depth: 标准                       # 快速/基础/标准/深度/全面
+    analysts: [market, fundamentals, news]
+    concurrency: 2                    # 原项目单用户并发上限是 3
     poll_interval: 10
-  prices:
-    glm-5.3:
-      input: 0.0
-      output: 0.0
-    GLM-5.3:
-      input: 0.0
-      output: 0.0
+  prices:                             # 可选：每 1k token 价格，用于成本估算
+    glm-5.3: { input: 0.0, output: 0.0 }
+
 replay:
   theme: dark
   exports_dir: data/exports
+
 cron:
   timezone: Asia/Shanghai
   jobs:
-  - name: 早盘简报
-    schedule: 30 9 * * 1-5
-    symbol: 002594
-    depth: 标准
-    pipeline:
-    - digest
-    - notify
+    - name: 早盘简报
+      schedule: "30 9 * * 1-5"        # 工作日 09:30
+      symbol: "002594"
+      depth: 标准
+      pipeline: [digest, notify]      # 分析完成后：提炼 -> 推送全部渠道

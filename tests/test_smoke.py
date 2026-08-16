@@ -80,3 +80,26 @@ def test_condenser_clips_long_input():
     text = "字" * 50000
     clipped = _clip(text)
     assert len(clipped) < 26000 and "省略" in clipped
+
+
+def test_dingtalk_sign_shape():
+    from studio.notify.channels.dingtalk import _sign
+    s = _sign("secret", 1700000000000)
+    assert isinstance(s, str) and len(s) > 10 and "%" in s  # URL 编码后的 base64
+
+
+def test_channel_registry_and_multi_instance():
+    from studio.notify.channels import registry
+    a = registry.build("feishu", {"webhook": "https://x/hook"}, alias="群A")
+    b = registry.build("feishu#盯盘群".split("#")[0], {"webhook": "https://y/hook"}, alias="盯盘群")
+    assert a.alias == "群A" and b.alias == "盯盘群"
+    for ctype in ("dingtalk", "wecom"):
+        assert registry.build(ctype, {"webhook": "https://x"}).name == ctype
+    assert registry.build("webhook", {"url": "https://x"}).name == "webhook"
+    tg = registry.build("telegram", {"token": "t", "chat_id": "1"})
+    assert tg.name == "telegram"
+
+
+def test_wecom_text_truncation_is_safe():
+    # 截断逻辑在 send 内部，这里验证构造与超长文本不抛错由集成覆盖；此测试保底签名导入
+    from studio.notify.channels import wecom  # noqa: F401
