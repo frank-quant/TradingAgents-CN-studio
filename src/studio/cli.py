@@ -235,14 +235,17 @@ def compare_run(
     from .compare import report as R
     from .compare.runner import run_compare
     cfg = _cfg(config)
-    model_list = [m.strip() for m in models.split(",") if m.strip()]
+    aliases: dict = cfg.get("compare.aliases", {}) or {}
+    reverse = {v: k for k, v in aliases.items()}
+    model_list = [reverse.get(m.strip(), m.strip()) for m in models.split(",") if m.strip()]
     d = cfg.get("compare.defaults", {}) or {}
     depth = depth or d.get("depth", "标准")
     analysts = d.get("analysts") or ["market", "fundamentals", "news"]
     concurrency = concurrency or int(d.get("concurrency", 2) or 2)
     poll = float(d.get("poll_interval", 10) or 10)
 
-    console.print(f"[bold]compare plan[/bold]: {symbol} | {depth} | models={model_list} | 并发={concurrency}")
+    display = [aliases.get(m, m) for m in model_list]
+    console.print(f"[bold]compare plan[/bold]: {symbol} | {depth} | models={display} | 并发={concurrency}")
     if dry_run:
         console.print("[yellow]--dry-run：不执行真实分析[/yellow]")
         return

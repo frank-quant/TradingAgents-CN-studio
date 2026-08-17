@@ -25,7 +25,7 @@ DEFAULTS: dict[str, Any] = {
     "llm": {
         "base_url": "https://open.bigmodel.cn/api/paas/v4",
         "api_key": "",
-        "model": "glm-5.3",
+        "model": "",
         "max_tokens": 2000,
         "temperature": 0.3,
     },

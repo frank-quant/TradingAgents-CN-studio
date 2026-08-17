@@ -33,7 +33,7 @@ compare:
       input: 0.0
       output: 0.0
   aliases:
-    glm-5.3: glm-5.3
+    <API模型ID>: <显示名>
 replay:
   theme: dark
   exports_dir: data/exports
