@@ -63,6 +63,7 @@ def collect_tokens(client, model: str, since: datetime) -> tuple[int, int]:
 
 
 def build_rows(cfg, client, runs: list[ModelRun], bench_start: datetime) -> list[dict]:
+    aliases: dict = cfg.get("compare.aliases", {}) or {}
     rows = []
     prices: dict = cfg.get("compare.prices", {}) or {}
     for run in runs:
@@ -80,7 +81,7 @@ def build_rows(cfg, client, runs: list[ModelRun], bench_start: datetime) -> list
             cost = f"{cost:.2f}"
         decision = (run.result.get("decision") or {}).get("action") or _decision_of(text)
         rows.append({
-            "model": run.model,
+            "model": aliases.get(run.model, run.model),
             "status": run.status,
             "wall_s": run.wall_s,
             "report_chars": len(text) if text else 0,
